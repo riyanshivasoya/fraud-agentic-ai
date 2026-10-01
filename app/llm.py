@@ -29,13 +29,14 @@ def list_ollama_models():
         return []
 
 
-def list_hosted_models():
-    """Chat models offered by the OpenAI-compatible endpoint (e.g. Groq). Empty list if unreachable."""
-    if not config.OPENAI_API_KEY:
+def list_hosted_models(base_url=None, api_key=None):
+    """Chat models offered by an OpenAI-compatible endpoint (Groq, OpenRouter). Empty list if unreachable."""
+    base_url = base_url or config.OPENAI_BASE_URL
+    api_key = config.OPENAI_API_KEY if api_key is None else api_key
+    if not api_key:
         return []
     try:
-        r = requests.get(f"{config.OPENAI_BASE_URL.rstrip('/')}/models",
-                         headers={"Authorization": f"Bearer {config.OPENAI_API_KEY}"}, timeout=10)
+        r = requests.get(f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"}, timeout=10)
         r.raise_for_status()
         skip = ("whisper", "tts", "guard", "embed", "playai", "orpheus", "compound", "safeguard")
         return sorted(m["id"] for m in r.json().get("data", []) if not any(k in m["id"].lower() for k in skip))
@@ -60,17 +61,19 @@ def _ollama(model, system, user):
     return r.json()["message"]["content"]
 
 
-def _openai_compatible(model, system, user):
-    if not config.OPENAI_API_KEY:
-        raise ModelError("Set OPENAI_COMPAT_API_KEY to use a hosted endpoint.")
-    headers = {"Authorization": f"Bearer {config.OPENAI_API_KEY}"}
+def _openai_compatible(model, system, user, base_url=None, api_key=None):
+    base_url = base_url or config.OPENAI_BASE_URL
+    api_key = config.OPENAI_API_KEY if api_key is None else api_key
+    if not api_key:
+        raise ModelError("No API key set for the hosted model service.")
+    headers = {"Authorization": f"Bearer {api_key}"}
     body = {
         "model": model,
         "temperature": config.LLM_TEMPERATURE,
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         "response_format": {"type": "json_object"},
     }
-    url = f"{config.OPENAI_BASE_URL.rstrip('/')}/chat/completions"
+    url = f"{base_url.rstrip('/')}/chat/completions"
     r = requests.post(url, json=body, headers=headers, timeout=config.LLM_TIMEOUT_SECONDS)
     if r.status_code == 400:  # some providers do not support JSON mode; retry without it
         body.pop("response_format")
@@ -135,6 +138,8 @@ def call_model(provider, model, system, user, agent, fault=None, attempt=1):
         raw = _ollama(model, system, user)
     elif provider == "openai":
         raw = _openai_compatible(model, system, user)
+    elif provider == "openrouter":
+        raw = _openai_compatible(model, system, user, config.OPENROUTER_BASE_URL, config.OPENROUTER_API_KEY)
     elif provider == "offline":
         raw = _offline(agent, user)
     else:
