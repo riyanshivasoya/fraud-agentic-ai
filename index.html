@@ -5,7 +5,7 @@
 <script>
 /* ===== PASTE YOUR LINKS HERE ===== */
 const REPO_URL  = "https://github.com/riyanshivasoya/fraud-agentic-ai";   // e.g. "https://github.com/yourname/fraud-agentic-ai"
-const APP_URL   = "";   // live app link, e.g. "https://fraud-shield.streamlit.app"
+const APP_URL   = "http://localhost:8501";   // the Streamlit app running on this computer
 const VIDEO_URL = "";   // e.g. "https://youtu.be/abc123XYZ" or a Google Drive link
 const EXPERT_ROLE = "";    // e.g. "Senior Manager, Fraud Risk, a private sector bank" (no name or contact details needed)
 const EXPERT_SUMMARY = ""; // 3-5 sentences: what the expert confirmed, the risks they raised, and their suggested improvements
@@ -146,9 +146,10 @@ footer a{color:#fff}
     <p class="lead">Four AI agents gather and explain the evidence for every fraud alert. A transparent policy gate routes each case, and people make every decision that affects a customer.</p>
     <div class="btns">
       <a class="btn primary" id="btn-video" href="#demo">▶ Watch the demo</a>
-      <a class="btn primary" id="btn-app" href="#" target="_blank" rel="noopener" style="display:none">Try the live app</a>
+      <a class="btn primary" id="btn-app" href="#" target="_blank" rel="noopener" style="display:none">▶ Open the app</a>
       <a class="btn ghost" id="btn-repo" href="#" target="_blank" rel="noopener">View the code</a>
     </div>
+    <p id="app-note" style="display:none;margin:12px 0 0;font-size:13.5px;color:#c9d6e8">The app runs locally for data privacy: start it first with <code style="background:rgba(255,255,255,.12);padding:1px 6px;border-radius:5px">python -m streamlit run streamlit_app.py</code>, then click Open the app.</p>
     <div class="hero-meta">
       <span class="pill">LangGraph orchestration</span><span class="pill">Streamlit interface</span>
       <span class="pill">Open-weight models via Ollama</span><span class="pill">Human-in-the-loop</span><span class="pill">Synthetic data only</span>
@@ -322,7 +323,7 @@ footer a{color:#fff}
 <script>
 
 (function(){
-  if (APP_URL) { const a = document.getElementById("btn-app"); a.href = APP_URL; a.style.display = "inline-flex"; }
+  if (APP_URL) { const a = document.getElementById("btn-app"); a.href = APP_URL; a.style.display = "inline-flex"; document.getElementById("app-note").style.display = "block"; }
   const repoBtn = document.getElementById("btn-repo");
   if (REPO_URL) {
     repoBtn.href = REPO_URL;
