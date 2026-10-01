@@ -1,0 +1,8 @@
+customer_id,full_name,account_number,phone,home_city,home_country,usual_device_id,usual_channels,avg_txn_amount,max_txn_amount_90d,account_age_days,kyc_risk_category,segment
+C001,Aarav Mehta,50100234561001,+91-90000-10001,Pune,IN,DEV-A1F3,POS;UPI,2500,9000,2140,low,Salaried
+C002,Isha Kulkarni,50100234561002,+91-90000-10002,Pune,IN,DEV-B7C2,UPI;CARD_ONLINE,6000,30000,1310,low,Salaried
+C003,Rohan Desai,50100234561003,+91-90000-10003,Ahmedabad,IN,DEV-C9D4,NETBANKING;UPI,20000,90000,2900,medium,Self-employed
+C004,Neha Joshi,50100234561004,+91-90000-10004,Nagpur,IN,DEV-D2E8,UPI,4000,18000,780,low,Student
+C005,Kabir Shah,50100234561005,+91-90000-10005,Mumbai,IN,DEV-E5F1,CARD_ONLINE;POS,5000,15000,1650,low,Salaried
+C006,Meera Iyer,50100234561006,+91-90000-10006,Bengaluru,IN,DEV-F8A6,NETBANKING;UPI,15000,60000,3400,low,Business owner
+C007,Vikram Rao,50100234561007,+91-90000-10007,Hyderabad,IN,DEV-G3B9,UPI,3000,5000,12,high,Salaried

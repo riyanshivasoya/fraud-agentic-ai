@@ -1,0 +1,35 @@
+{
+ "note": "Demo access list (role-based access control). Team members sign in with name + PIN and get the role listed here. Any other name signs in as Viewer (read only) with no PIN. PINs are stored as SHA-256 hashes. A real bank would use single sign-on with roles from its identity system.",
+ "users": [
+  {
+   "name": "Riyanshi",
+   "role": "Senior Investigator",
+   "pin_sha256": "fe675fe7aaee830b6fed09b64e034f84dcbdaeb429d9cccd4ebb90e15af8dd71"
+  },
+  {
+   "name": "Khushi",
+   "role": "Senior Investigator",
+   "pin_sha256": "b281bc2c616cb3c3a097215fdc9397ae87e6e06b156cc34e656be7a1a9ce8839"
+  },
+  {
+   "name": "Vatsal",
+   "role": "Fraud Analyst",
+   "pin_sha256": "85d6385b945c0d602103db39b0b654b2af93b5127938e26a959c123f0789b948"
+  },
+  {
+   "name": "Aakash",
+   "role": "Fraud Analyst",
+   "pin_sha256": "6c94e35ccc352d4e9ef0b99562cff995a5741ce8de8ad11b568892934daee366"
+  },
+  {
+   "name": "Sarthak",
+   "role": "Fraud Analyst",
+   "pin_sha256": "77459b9b941bcb4714d0c121313c900ecf30541d158eb2b9b178cdb8eca6457e"
+  },
+  {
+   "name": "Priyanshu",
+   "role": "Fraud Analyst",
+   "pin_sha256": "483029d526219f816e8e8f6a9de07b422633dba180ffc26faac22862a017519f"
+  }
+ ]
+}

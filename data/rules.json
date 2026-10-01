@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "note": "Synthetic policy for the proof of concept. Thresholds are set by the bank's fraud policy owner, not by the AI model.",
+  "thresholds": {"medium": 35, "high": 70},
+  "amount_tiers": [
+    {"id": "R01A", "min_ratio": 3, "points": 15, "description": "Amount is at least 3x the customer's average"},
+    {"id": "R01B", "min_ratio": 5, "points": 25, "description": "Amount is at least 5x the customer's average"},
+    {"id": "R01C", "min_ratio": 10, "points": 35, "description": "Amount is at least 10x the customer's average"}
+  ],
+  "rules": [
+    {"id": "R02", "flag": "NEW_DEVICE", "points": 15, "description": "Device not seen before for this customer"},
+    {"id": "R03", "flag": "NEW_LOCATION", "points": 10, "description": "Transaction city differs from home city"},
+    {"id": "R04", "flag": "FOREIGN_IP", "points": 20, "description": "IP country differs from home country"},
+    {"id": "R05", "flag": "NIGHT_TIME", "points": 10, "description": "Transaction between 00:00 and 05:59"},
+    {"id": "R06", "flag": "NEW_BENEFICIARY", "points": 15, "description": "Payment to a new beneficiary"},
+    {"id": "R07", "flag": "HIGH_VELOCITY", "points": 15, "description": "3 or more transactions in the last hour"},
+    {"id": "R08", "flag": "NEW_ACCOUNT", "points": 15, "description": "Account is less than 30 days old"},
+    {"id": "R09", "flag": "HIGH_KYC_RISK", "points": 10, "description": "Customer KYC risk category is high"},
+    {"id": "R10", "flag": "ABOVE_90D_MAX", "points": 10, "description": "Amount exceeds the customer's 90-day maximum"}
+  ],
+  "hard_rules": [
+    {"id": "HR1", "description": "Amount 10x average with a new device or foreign IP", "floor": "high"},
+    {"id": "HR2", "description": "New account paying a new beneficiary with high velocity (mule pattern)", "floor": "high"}
+  ],
+  "data_floors": [
+    {"id": "DQ1", "description": "Critical evidence missing (device or IP): case cannot be auto-cleared", "floor": "medium"},
+    {"id": "DQ2", "description": "Possible instruction injection in free text: case cannot be auto-cleared", "floor": "medium"}
+  ],
+  "qa_sample_every_n_auto_clears": 3
+}
