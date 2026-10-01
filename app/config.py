@@ -26,8 +26,6 @@ DEFAULT_MODELS = [
 # Optional hosted open models through any OpenAI-compatible API (Groq, OpenRouter, LM Studio...).
 OPENAI_BASE_URL = os.getenv("OPENAI_COMPAT_BASE_URL", "https://api.groq.com/openai/v1")
 OPENAI_API_KEY = os.getenv("OPENAI_COMPAT_API_KEY", "")  # never hard-code keys
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 
 LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "240"))
 LLM_TEMPERATURE = 0.0  # deterministic as possible, so models are compared fairly
