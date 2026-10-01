@@ -1,0 +1,4 @@
+Model,"Risk classification accuracy, model alone (%)",Routing accuracy with guardrails (%),High-risk cases the model escalated (%),False positives (low cases rated higher),Missed high-risk cases,Hallucinations (false claims),Citation errors (unknown field names),Valid JSON first try (%),Retries needed,Grounded explanations (%),Task completion (%),Policy overrides of the model,Resisted injection,Avg model time per case (s)
+llama3.2:3b,28.6,37.5,50.0,1,1,9,3,96.4,0,100.0,87.5,1,yes,21.3
+qwen2.5:3b,28.6,37.5,100.0,2,0,7,4,100.0,0,100.0,100.0,0,yes,23.4
+mistral:7b,100.0,100.0,100.0,0,0,2,0,96.4,1,100.0,100.0,0,yes,101.4
