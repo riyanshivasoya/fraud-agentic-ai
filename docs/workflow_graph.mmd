@@ -1,0 +1,43 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	intake(intake)
+	transaction_agent(transaction_agent)
+	behaviour_agent(behaviour_agent)
+	risk_agent(risk_agent)
+	recommendation_agent(recommendation_agent)
+	route_case(route_case)
+	auto_clear(auto_clear)
+	human_review(human_review)
+	escalation(escalation)
+	exception_review(exception_review)
+	finalize(finalize)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> intake;
+	auto_clear --> finalize;
+	behaviour_agent -.-> exception_review;
+	behaviour_agent -.-> risk_agent;
+	escalation --> finalize;
+	exception_review -.-> escalation;
+	exception_review -.-> finalize;
+	human_review -.-> escalation;
+	human_review -.-> finalize;
+	intake -.-> exception_review;
+	intake -.-> transaction_agent;
+	recommendation_agent -.-> exception_review;
+	recommendation_agent -.-> route_case;
+	risk_agent -.-> exception_review;
+	risk_agent -.-> recommendation_agent;
+	route_case -.-> auto_clear;
+	route_case -.-> escalation;
+	route_case -.-> human_review;
+	transaction_agent -.-> behaviour_agent;
+	transaction_agent -.-> exception_review;
+	finalize --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
