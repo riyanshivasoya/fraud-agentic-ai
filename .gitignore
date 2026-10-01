@@ -1,0 +1,7 @@
+__pycache__/
+logs/*.jsonl
+results/*
+!results/.gitkeep
+!results/benchmark_summary.csv
+!results/benchmark_runs.csv
+.env
