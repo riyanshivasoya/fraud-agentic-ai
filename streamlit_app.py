@@ -79,7 +79,7 @@ if ss.user is None:
         st.subheader("Sign in")
         with st.form("login"):
             login_name = st.text_input("Name")
-            login_pin = st.text_input("PIN (team members only)", type="password", autocomplete="off")
+            login_pin = st.text_input("PIN", type="password", autocomplete="off")
             if st.form_submit_button("Sign in", type="primary", width="stretch"):
                 found = authenticate(login_name, login_pin)
                 log_event("-", "-", login_name or "(blank)", "sign_in" if found else "sign_in_failed",
