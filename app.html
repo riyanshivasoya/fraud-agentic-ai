@@ -70,6 +70,30 @@ code{background:rgba(255,255,255,.08);padding:1px 6px;border-radius:5px;color:#7
 .bars{display:grid;gap:10px}.bar-row{display:grid;grid-template-columns:120px 1fr 70px;gap:10px;align-items:center;font-size:.92rem}
 .track{height:14px;background:rgba(255,255,255,.08);border-radius:7px;overflow:hidden}.fill{height:100%;background:var(--info);border-radius:7px}
 img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:10px;display:block;margin:0 auto}
+
+/* model comparison */
+.cmp-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem}.legend span{display:flex;align-items:center;gap:6px}.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.mcards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}
+.mcard{position:relative;border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 16%,transparent),var(--card) 60%);overflow:hidden}
+.mcard:before{content:"";position:absolute;left:0;top:0;right:0;height:4px;background:var(--c)}
+.mcard .mname{font-weight:700;font-size:1.15rem}.mcard .mtag{display:inline-block;margin-top:6px;font-size:.75rem;padding:2px 9px;border-radius:20px;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c);font-weight:600}
+.mcard .ring{display:flex;align-items:center;gap:16px;margin-top:12px}
+.mcard .stats{display:grid;gap:4px;font-size:.88rem;color:var(--mute)}.mcard .stats b{color:var(--ink)}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cbox{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px;background:var(--card)}
+.cbox h4{margin:0;font-size:1.05rem}.csub{color:var(--mute);font-size:.82rem;margin:2px 0 10px}
+.cbox svg{width:100%;height:auto;display:block}
+.cbox svg text{fill:var(--mute);font-size:12px;font-family:inherit}
+.hb{display:grid;grid-template-columns:110px 1fr 64px;gap:10px;align-items:center;margin:9px 0;font-size:.9rem}
+.hb .tr{height:16px;background:rgba(255,255,255,.06);border-radius:8px;overflow:hidden}
+.hb .fl{height:100%;width:0;border-radius:8px;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.grp{margin:12px 0}.grp .gl{font-size:.86rem;margin-bottom:5px}
+.grp .hb{grid-template-columns:110px 1fr 56px;margin:4px 0;font-size:.82rem}.grp .hb .tr{height:11px}
+.heat td,.heat th{text-align:center}.heat td:first-child,.heat th:first-child{text-align:left}
+.pill{display:inline-block;min-width:74px;padding:3px 8px;border-radius:7px;font-size:.8rem;font-weight:600}
+.ok{background:var(--greenbg);color:var(--green)}.bad{background:var(--redbg);color:var(--red)}.na{background:rgba(255,255,255,.06);color:var(--mute)}
+@media(max-width:900px){.mcards,.cgrid{grid-template-columns:1fr}}
 @media(max-width:900px){#app{flex-direction:column}aside{width:auto;padding:20px}main{padding:20px}
 .metrics{grid-template-columns:repeat(3,1fr)}.cards4,.grid3{grid-template-columns:1fr}}
 </style>
@@ -174,13 +198,23 @@ img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:
       </section>
 
       <section id="t3" class="hidden">
-        <h2>Open-model comparison</h2>
-        <div class="caption">Same 8 cases, prompts, evidence and JSON schema for every model; temperature 0. Results from the team's local Ollama benchmark run (HP Victus 15, Ryzen 5 5600H, RTX 3050 4 GB).</div>
-        <div class="tbl" style="margin-top:12px"><table id="cmp"></table></div>
-        <div class="grid3" style="grid-template-columns:1fr 1fr;margin-top:18px">
-          <div class="box"><h4 style="margin-top:0">Routing accuracy with guardrails (%)</h4><div class="bars" id="barAcc"></div></div>
-          <div class="box"><h4 style="margin-top:0">Average model time per case (s)</h4><div class="bars" id="barLat"></div></div>
+        <div class="cmp-head">
+          <div><h2 style="margin:0">Open-model comparison</h2>
+          <div class="caption">Same 8 cases, prompts, evidence and JSON schema for every model · temperature 0 · local Ollama benchmark on HP Victus 15 (Ryzen 5 5600H, RTX 3050 4 GB)</div></div>
+          <div class="legend" id="cmpLegend"></div>
         </div>
+        <div class="mcards" id="mcards"></div>
+        <div class="cgrid">
+          <div class="cbox"><h4>Quality scorecard</h4><div class="csub">Six percentage metrics, higher is better</div><div id="radar"></div></div>
+          <div class="cbox"><h4>Accuracy vs speed</h4><div class="csub">Top-left is ideal: accurate and fast</div><div id="scatter"></div></div>
+        </div>
+        <div class="cbox"><h4>Quality metrics (%)</h4><div class="csub">Higher is better</div><div id="grouped"></div></div>
+        <div class="cgrid">
+          <div class="cbox"><h4>Errors per model</h4><div class="csub">Counts across 8 cases, lower is better</div><div id="errs"></div></div>
+          <div class="cbox"><h4>Average model time per case</h4><div class="csub">Seconds, lower is better</div><div id="lat"></div></div>
+        </div>
+        <div class="cbox"><h4>Case-by-case result</h4><div class="csub">Risk level each model gave and whether the final route matched the expected route</div><div class="tbl" style="margin-top:10px"><table id="heat" class="heat"></table></div></div>
+        <div class="cbox"><h4>Full metrics table</h4><div class="tbl" style="margin-top:10px"><table id="cmp"></table></div></div>
       </section>
 
       <section id="t4" class="hidden">
@@ -244,6 +278,7 @@ document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("on", x===b));
   ["t1","t2","t3","t4","t5"].forEach(id => $("#"+id).classList.toggle("hidden", id!==b.dataset.t));
   if(b.dataset.t==="t4") renderAudit();
+  if(b.dataset.t==="t3") renderCmp();
 });
 
 /* ---------------- tables ---------------- */
@@ -494,9 +529,52 @@ table($("#nodes"), [["n","Node"],["r","Role"],["l","Label"]], [
   ["recommendation_agent","Recommendation Agent","A"],["route_case","Policy gate (conditional routing)","A"],["auto_clear","Low risk, logged, QA sampled","A"],
   ["human_review","Fraud Analyst decides","H"],["exception_review","Missing data or model failure","H"],["escalation","Senior Investigator decides","E"]].map(([n,r,l])=>({n,r,l})));
 const CMP = DATA.cmp;
-$("#cmp").innerHTML = "<tr><th>Metric</th>"+CMP.models.map(m=>`<th>${m}</th>`).join("")+"</tr>" + CMP.rows.map(r=>`<tr><td>${esc(r[0])}</td>${r.slice(1).map(x=>`<td>${x}</td>`).join("")}</tr>`).join("");
-const bars = (el, vals, max, unit) => el.innerHTML = CMP.models.map((m,i)=>`<div class="bar-row"><span>${m}</span><div class="track"><div class="fill" style="width:${vals[i]/max*100}%"></div></div><b>${vals[i]}${unit}</b></div>`).join("");
-bars($("#barAcc"), [37.5,37.5,100], 100, "%"); bars($("#barLat"), [21.3,23.4,101.4], 101.4, " s");
+/* ---------- model comparison charts ---------- */
+const MC = ["#5aa9ff","#c084fc","#ffa94d"];
+const MV = label => CMP.rows.find(r=>r[0].startsWith(label)).slice(1).map(Number);
+function hbar(name, v, max, unit, color){ return `<div class="hb"><span>${name}</span><div class="tr"><div class="fl" data-w="${v/max*100}" style="background:linear-gradient(90deg,${color}99,${color})"></div></div><b>${v}${unit}</b></div>`; }
+function ring(pct,color){ const r=30,c=2*Math.PI*r; return `<svg width="76" height="76" viewBox="0 0 76 76" style="flex:none"><circle cx="38" cy="38" r="${r}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="8"/><circle cx="38" cy="38" r="${r}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct/100)}" transform="rotate(-90 38 38)"/><text x="38" y="43" text-anchor="middle" style="fill:#fafafa;font-weight:700;font-size:15px">${pct}%</text></svg>`; }
+function renderCmp(){
+  const M = CMP.models;
+  $("#cmpLegend").innerHTML = M.map((m,i)=>`<span><i style="background:${MC[i]}"></i>${m}</span>`).join("");
+  const route=MV("Routing accuracy"), lat=MV("Avg model time"), hal=MV("Hallucinations"), cls=MV("Risk classification"), json=MV("Valid JSON"), task=MV("Task completion");
+  const tags=["Fastest","Most reliable JSON","Most accurate"];
+  $("#mcards").innerHTML = M.map((m,i)=>`<div class="mcard" style="--c:${MC[i]}"><div class="mname">${m}</div><span class="mtag">${tags[i]}</span>
+    <div class="ring">${ring(route[i],MC[i])}<div class="stats"><div>Routing accuracy</div><div><b>${cls[i]}%</b> risk classification</div><div><b>${task[i]}%</b> task completion</div><div><b>${hal[i]}</b> hallucinations · <b>${lat[i]} s</b>/case</div></div></div></div>`).join("");
+  // radar
+  const ax=[["Classification",cls],["Routing",route],["High-risk escalated",MV("High-risk cases")],["JSON first try",json],["Grounded",MV("Grounded")],["Task completion",task]];
+  const W=560,H=330,cx=W/2,cy=H/2+4,R=112,n=ax.length, pt=(k,v)=>{const a=-Math.PI/2+2*Math.PI*k/n;return [cx+Math.cos(a)*R*v/100, cy+Math.sin(a)*R*v/100];};
+  let g=""; [25,50,75,100].forEach(l=>{ g+=`<polygon points="${ax.map((_,k)=>pt(k,l).join(",")).join(" ")}" fill="none" stroke="rgba(255,255,255,.1)"/>`; });
+  ax.forEach((a,k)=>{ const [x,y]=pt(k,100),[lx,ly]=pt(k,122); g+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,255,255,.1)"/><text x="${lx}" y="${ly+4}" text-anchor="${Math.abs(lx-cx)<5?"middle":lx>cx?"start":"end"}">${a[0]}</text>`; });
+  M.forEach((m,i)=>{ const pts=ax.map((a,k)=>pt(k,a[1][i]).join(",")).join(" "); g+=`<polygon class="rp" points="${pts}" fill="${MC[i]}" fill-opacity=".14" stroke="${MC[i]}" stroke-width="2.2"/>`; ax.forEach((a,k)=>{const [x,y]=pt(k,a[1][i]); g+=`<circle cx="${x}" cy="${y}" r="3.2" fill="${MC[i]}"><title>${m} · ${a[0]}: ${a[1][i]}%</title></circle>`;}); });
+  $("#radar").innerHTML = `<svg viewBox="0 0 ${W} ${H}">${g}</svg>`;
+  // scatter accuracy vs speed
+  const SW=430,SH=300,L=62,B=40,T=16,Rt=20, sx=v=>L+(v/120)*(SW-L-Rt), sy=v=>SH-B-(v/100)*(SH-B-T);
+  let s=`<rect x="${L}" y="${T}" width="${(sx(40)-L)}" height="${sy(70)-T}" fill="rgba(33,195,84,.07)"/>`;
+  [0,25,50,75,100].forEach(v=>s+=`<line x1="${L}" x2="${SW-Rt}" y1="${sy(v)}" y2="${sy(v)}" stroke="rgba(255,255,255,.07)"/><text x="${L-8}" y="${sy(v)+4}" text-anchor="end">${v}%</text>`);
+  [0,30,60,90,120].forEach(v=>s+=`<text x="${sx(v)}" y="${SH-B+18}" text-anchor="middle">${v}s</text>`);
+  s+=`<text x="${(L+SW-Rt)/2}" y="${SH-4}" text-anchor="middle">Average time per case (s)</text><text x="12" y="${(T+SH-B)/2}" transform="rotate(-90 12 ${(T+SH-B)/2})" text-anchor="middle">Routing accuracy</text>`;
+  const off=[[-8,-14],[8,22],[-16,5]];
+  M.forEach((m,i)=>{ s+=`<circle cx="${sx(lat[i])}" cy="${sy(route[i])}" r="${8+hal[i]}" fill="${MC[i]}" fill-opacity=".35" stroke="${MC[i]}" stroke-width="2"><title>${m}: ${route[i]}% routing, ${lat[i]} s, ${hal[i]} hallucinations</title></circle><text x="${sx(lat[i])+off[i][0]}" y="${sy(route[i])+off[i][1]}" text-anchor="${i===2?"end":"start"}" style="fill:${MC[i]};font-weight:600">${m}</text>`; });
+  $("#scatter").innerHTML = `<svg viewBox="0 0 ${SW} ${SH}">${s}</svg><div class="csub" style="margin:4px 0 0">Bubble size = hallucinations</div>`;
+  // grouped quality bars
+  $("#grouped").innerHTML = `<div class="cgrid" style="gap:4px 28px">` + ax.map(a=>`<div class="grp"><div class="gl">${a[0]}</div>${M.map((m,i)=>hbar(m,a[1][i],100,"%",MC[i])).join("")}</div>`).join("") + `</div>`;
+  // errors
+  const er=[["Hallucinations",hal],["Citation errors",MV("Citation errors")],["False positives",MV("False positives")],["Missed high-risk",MV("Missed high-risk")]];
+  $("#errs").innerHTML = er.map(e=>`<div class="grp"><div class="gl">${e[0]}</div>${M.map((m,i)=>hbar(m,e[1][i],10,"",MC[i])).join("")}</div>`).join("");
+  $("#lat").innerHTML = M.map((m,i)=>hbar(m,lat[i],110," s",MC[i])).join("") + `<div class="csub" style="margin-top:14px">Mistral 7B is the most accurate but about 4.5x slower than the 3B models on our 4 GB GPU.</div>`;
+  // case heatmap
+  const cases=DATA.tests;
+  $("#heat").innerHTML = `<tr><th>Alert</th><th>Test case</th><th>Expected</th>${M.map((m,i)=>`<th style="color:${MC[i]}">${m}</th>`).join("")}</tr>` + cases.map(c=>{
+    const cells=M.map(m=>{ if(!c.expected_risk_level) return `<td><span class="pill ok">exception ✓</span></td>`;
+      const v=REPLAY[m].lv[c.alert_id]; if(v==="fail") return `<td><span class="pill bad">not completed</span></td>`;
+      const okRoute = ({low:"auto_clear",medium:"human_review",high:"escalation"})[v]===c.expected_route;
+      return `<td><span class="pill ${okRoute?"ok":"bad"}">${v} ${okRoute?"✓":"✗"}</span></td>`; }).join("");
+    return `<tr><td>${c.alert_id}</td><td>${esc(c.case_type)}</td><td><span class="pill na">${c.expected_risk_level||"exception"}</span></td>${cells}</tr>`; }).join("");
+  $("#cmp").innerHTML = "<tr><th>Metric</th>"+M.map((m,i)=>`<th style="color:${MC[i]}">${m}</th>`).join("")+"</tr>" + CMP.rows.map(r=>`<tr><td>${esc(r[0])}</td>${r.slice(1).map(x=>`<td>${x}</td>`).join("")}</tr>`).join("");
+  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll("#t3 .fl").forEach(f=>f.style.width=f.dataset.w+"%")));
+}
+renderCmp();
 table($("#cust"), [["customer_ref","customer_ref"],["account_number_masked","account (masked)"],["home_city","home_city"],["home_country","home_country"],["usual_channels","usual_channels"],["avg_txn_amount_inr","avg amount"],["max_txn_amount_90d_inr","90-day max"],["account_age_days","account age"],["kyc_risk_category","KYC risk"],["segment","segment"]], DATA.customers.map(maskCust));
 table($("#rulesT"), [["id","Rule"],["c","Condition"],["p","Points"]], DATA.rules.amount_tiers.map(t=>({id:t.id,c:t.description,p:t.points})).concat(DATA.rules.rules.map(r=>({id:r.id,c:r.description,p:r.points}))));
 table($("#floorsT"), [["id","Floor"],["c","Condition"],["f","Minimum level"]], DATA.rules.hard_rules.concat(DATA.rules.data_floors).map(r=>({id:r.id,c:r.description,f:r.floor})));
