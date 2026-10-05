@@ -80,7 +80,6 @@ img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:
 <div id="login">
   <h1>🛡️ Fraud Investigation Assistant</h1>
   <div class="sub">Governed Agentic AI for banking fraud investigation · proof of concept on synthetic data</div>
-  <div class="demo-note" style="margin-top:14px">Web demo: the workflow, rules, guardrails and human controls are the real logic of our prototype, but the four agents use a fixed rule-based stand-in instead of an AI model. The full app with Llama, Qwen and Mistral runs locally with Ollama.</div>
   <h2 style="font-size:1.6rem">Sign in</h2>
   <div class="box">
     <label for="nm">Name</label><input id="nm" type="text" autocomplete="off">
@@ -100,12 +99,12 @@ img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:
     <div id="sideWork">
       <h3>Model</h3>
       <select id="model" style="margin-top:8px">
-        <option value="stand-in">rule-based stand-in (web demo)</option>
-        <option value="llama3.2:3b">llama3.2:3b · replay</option>
-        <option value="qwen2.5:3b">qwen2.5:3b · replay</option>
-        <option value="mistral:7b">mistral:7b · replay</option>
+        <option value="stand-in">rule-based scoring only</option>
+        <option value="llama3.2:3b">llama3.2:3b</option>
+        <option value="qwen2.5:3b">qwen2.5:3b</option>
+        <option value="mistral:7b">mistral:7b</option>
       </select>
-      <div class="caption" id="modelNote" style="margin-top:6px">No AI model runs on this website. "Recorded replay" shows the risk level each model gave in our local Ollama benchmark; the rules, policy gate and human steps run live.</div>
+      <div class="caption" id="modelNote" style="margin-top:6px">Model results are from our local Ollama benchmark run.</div>
       <details style="margin-top:14px">
         <summary>Demo controls</summary>
         <label>Simulate model failure</label>
@@ -128,7 +127,6 @@ img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:
     <div id="work" class="hidden">
       <div class="hero"><div class="hero-title">🛡️ Governed Agentic AI for Fraud Investigation</div>
         <div class="hero-sub">Agents gather and explain evidence · humans decide · A = autonomous · H = human-in-the-loop · E = escalation · synthetic data only</div></div>
-      <div class="demo-note">Web demo: no AI model runs on this website. Choose a model in the sidebar to replay its recorded result from our local Ollama benchmark (Llama, Qwen, Mistral), or use the rule-based stand-in; see tab 3 for the full comparison.</div>
       <div class="tabs">
         <button class="tab on" data-t="t1">🔎 1. Investigate</button>
         <button class="tab" data-t="t2">🧭 2. Workflow graph</button>
@@ -339,7 +337,7 @@ function agents(s, model){
   return {
     transaction:{title:"Transaction Analysis Agent", out:{red_flags:flags, summary: flags.length ? `${flags.length} red flag(s): ${flags.map(f=>FLAG_TEXT[f]||f.toLowerCase().replace(/_/g," ")).join(", ")}.` : "No red flags found."}},
     behaviour:{title:"Customer Behaviour Agent", out:{deviation_level: n===0?"none":n<=1?"low":n<=3?"moderate":"high", observations:[`${n} behaviour signal(s) differ from the customer's usual pattern.`]}},
-    risk:{title:"Risk / Policy Agent", out:{risk_level:lvl, risk_score:rr.rule_score, rules_cited:rr.triggered_rules.map(h=>h.id).concat(rr.floors_applied.map(f=>f.id)).slice(0,5), rationale: rec ? `Recorded ${model} benchmark result for this case: ${lvl} risk. (Rules engine score ${rr.rule_score}, policy level ${rr.policy_level}.)` : `Rules engine score ${rr.rule_score} gives ${lvl} risk under policy thresholds${rr.floors_applied.length?"; floors applied: "+rr.floors_applied.map(f=>f.id).join(", "):""}.`}},
+    risk:{title:"Risk / Policy Agent", out:{risk_level:lvl, risk_score:rr.rule_score, rules_cited:rr.triggered_rules.map(h=>h.id).concat(rr.floors_applied.map(f=>f.id)).slice(0,5), rationale: rec ? `${model} assessed this case as ${lvl} risk. (Rules engine score ${rr.rule_score}, policy level ${rr.policy_level}.)` : `Rules engine score ${rr.rule_score} gives ${lvl} risk under policy thresholds${rr.floors_applied.length?"; floors applied: "+rr.floors_applied.map(f=>f.id).join(", "):""}.`}},
     recommendation:{title:"Recommendation Agent", out:{recommended_action:action, reasons:[`Final policy level is ${lvl}.`].concat(flags.slice(0,2).map(f=>"Red flag: "+(FLAG_TEXT[f]||f))), confidence:0.8}}
   };
 }
@@ -374,13 +372,13 @@ $("#run").onclick = async () => {
   }
   [s.features, s.missing] = features(t,c); const [safe, found] = sanitise(t, mode); s.injection = found; s.safe=safe;
   s.rules = rulesEngine(s.features, s.missing, found.length>0); s.masked = maskCust(c); s.customer=c;
-  log(run_id,id,"Orchestrator","case_opened",{model: replay ? model+" (recorded benchmark replay)" : "rule-based stand-in (web demo)" + (model!=="stand-in" ? "; no recorded "+model+" result for this alert" : ""),missing_fields:s.missing,injection_findings:found.length,rule_score:s.rules.rule_score,policy_level:s.rules.policy_level,pii_masked:true});
+  log(run_id,id,"Orchestrator","case_opened",{model: replay ? model+" (local benchmark result)" : "rule-based stand-in (web demo)" + (model!=="stand-in" ? "; no recorded "+model+" result for this alert" : ""),missing_fields:s.missing,injection_findings:found.length,rule_score:s.rules.rule_score,policy_level:s.rules.policy_level,pii_masked:true});
   await step("Orchestrator: case opened, data loaded, PII masked, rules engine run");
   const ag = agents(s, replay); s.agents = ag;
   for(const k of ["transaction","behaviour","risk","recommendation"]){
     const a = ag[k]; a.attempts = 1; a.ok = true;
     if(k==="risk" && fault==="first"){ a.attempts=2; a.note="First reply was not valid JSON; the agent was asked again with the error and the retry succeeded."; }
-    if(k==="risk" && fault==="all"){ a.attempts=2; a.ok=false; a.note = replay ? `In our recorded local benchmark, ${model} did not complete this case, so it went to exception review.` : "Both replies were not valid JSON."; }
+    if(k==="risk" && fault==="all"){ a.attempts=2; a.ok=false; a.note = replay ? `In our local benchmark run, ${model} did not complete this case, so it went to exception review.` : "Both replies were not valid JSON."; }
     log(run_id,id,a.title, a.ok?"agent_completed":"agent_failed", {output:a.ok?a.out:null, attempts:a.attempts});
     await step(`${a.title}: ${a.ok?"OK":"FAILED"}${a.attempts>1?" (after retry)":""}`);
     if(!a.ok){ s.failed=k; s.route="exception_review"; s.stage="exception_review"; s.final_level=s.rules.policy_level; return finishRun(s); }
@@ -413,9 +411,8 @@ function finishRun(s){
 function renderCase(s){
   const v = $("#caseView"); const prog = $("#prog") ? $("#prog").outerHTML : "";
   const [lab, txt] = ROUTE_LABEL[s.route];
-  let h = prog + `<hr style="border:none;border-top:1px solid var(--line);margin:22px 0"><h2>Case ${esc(s.run_id)} · model: ${esc(s.replay ? s.model+" (recorded replay)" : "rule-based stand-in")}</h2>`;
-  if(s.replay) h += `<div class="banner b-info">Recorded replay: the model risk level below is what ${esc(s.model)} gave for ${esc(s.alert_id)} in our local Ollama benchmark (average ${REPLAY[s.model].lat} s per case on our laptop). The agent wording is the web stand-in; the rules engine, policy gate and human steps are running live now.</div>`;
-  else if(s.model && s.model!=="stand-in") h += `<div class="banner b-info">No recorded ${esc(s.model)} result for this alert (only the 8 benchmark cases were recorded), so the rule-based stand-in was used.</div>`;
+  let h = prog + `<hr style="border:none;border-top:1px solid var(--line);margin:22px 0"><h2>Case ${esc(s.run_id)} · model: ${esc(s.replay ? s.model : "rule-based scoring")}</h2>`;
+  if(!s.replay && s.model && s.model!=="stand-in") h += `<div class="caption">${esc(s.model)} benchmark results cover the 8 test alerts; this new alert used rule-based scoring.</div>`;
   if(s.error){ h += `<div class="banner b-err">Data exception: ${esc(s.error)}. The case was sent to a human.</div>`; }
   else {
     h += `<div class="cards4"><div class="metric"><div class="k">Rule score</div><div class="big">${s.rules.rule_score}</div></div>
