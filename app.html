@@ -99,8 +99,13 @@ img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:
     <button class="btn" id="signout" style="margin:14px 0 26px">Sign out</button>
     <div id="sideWork">
       <h3>Model</h3>
-      <div class="caption">Web demo: rule-based agent stand-in (no AI model)</div>
-      <select id="model" style="margin-top:8px"><option>rule-based stand-in (web demo)</option></select>
+      <select id="model" style="margin-top:8px">
+        <option value="stand-in">rule-based stand-in (web demo)</option>
+        <option value="llama3.2:3b">llama3.2:3b · replay</option>
+        <option value="qwen2.5:3b">qwen2.5:3b · replay</option>
+        <option value="mistral:7b">mistral:7b · replay</option>
+      </select>
+      <div class="caption" id="modelNote" style="margin-top:6px">No AI model runs on this website. "Recorded replay" shows the risk level each model gave in our local Ollama benchmark; the rules, policy gate and human steps run live.</div>
       <details style="margin-top:14px">
         <summary>Demo controls</summary>
         <label>Simulate model failure</label>
@@ -123,7 +128,7 @@ img.graph{max-width:520px;width:100%;background:#fff;border-radius:10px;padding:
     <div id="work" class="hidden">
       <div class="hero"><div class="hero-title">🛡️ Governed Agentic AI for Fraud Investigation</div>
         <div class="hero-sub">Agents gather and explain evidence · humans decide · A = autonomous · H = human-in-the-loop · E = escalation · synthetic data only</div></div>
-      <div class="demo-note">Web demo: agents use a rule-based stand-in, not an AI model. Our three-model comparison (Llama, Qwen, Mistral) was run locally with Ollama; see tab 3.</div>
+      <div class="demo-note">Web demo: no AI model runs on this website. Choose a model in the sidebar to replay its recorded result from our local Ollama benchmark (Llama, Qwen, Mistral), or use the rule-based stand-in; see tab 3 for the full comparison.</div>
       <div class="tabs">
         <button class="tab on" data-t="t1">🔎 1. Investigate</button>
         <button class="tab" data-t="t2">🧭 2. Workflow graph</button>
@@ -321,14 +326,20 @@ function explain(f, rr, t, c){
 }
 /* ---------------- agents: rule-based stand-in (same logic as the app's offline test mode) ---------------- */
 const FLAG_TEXT={AMOUNT_SPIKE:"amount is at least 3x the customer's average",ABOVE_90D_MAX:"amount is above the 90-day maximum",NEW_DEVICE:"new device",NEW_LOCATION:"away from the home city",FOREIGN_IP:"IP address from another country",NIGHT_TIME:"night-time payment",NEW_BENEFICIARY:"new beneficiary",HIGH_VELOCITY:"3 or more payments in the last hour",NEW_ACCOUNT:"account less than 30 days old",HIGH_KYC_RISK:"high KYC risk",UNUSUAL_CHANNEL:"unusual payment channel"};
-function agents(s){
+/* recorded local Ollama benchmark results: model risk level per case; "fail" = model did not complete */
+const REPLAY = {
+  "llama3.2:3b":{lat:21.3, lv:{"ALT-001":"low","ALT-002":"high","ALT-003":"fail","ALT-004":"high","ALT-006":"high","ALT-007":"medium","ALT-008":"high"}},
+  "qwen2.5:3b":{lat:23.4, lv:{"ALT-001":"medium","ALT-002":"high","ALT-003":"high","ALT-004":"high","ALT-006":"high","ALT-007":"medium","ALT-008":"high"}},
+  "mistral:7b":{lat:101.4, lv:{"ALT-001":"low","ALT-002":"medium","ALT-003":"high","ALT-004":"medium","ALT-006":"medium","ALT-007":"low","ALT-008":"high"}}};
+function agents(s, model){
   const flags = trueFlags(s.features).concat(s.missing.length?["MISSING_DATA"]:[]).concat(s.injection.length?["SUSPICIOUS_TEXT"]:[]);
   const n = trueFlags(s.features).length, rr=s.rules;
-  const lvl = rr.policy_level, action = {low:"clear",medium:"verify_with_customer",high:"hold_and_escalate"}[lvl];
+  const rec = model && REPLAY[model] && REPLAY[model].lv[s.alert_id];
+  const lvl = (rec && rec!=="fail") ? rec : rr.policy_level, action = {low:"clear",medium:"verify_with_customer",high:"hold_and_escalate"}[lvl];
   return {
     transaction:{title:"Transaction Analysis Agent", out:{red_flags:flags, summary: flags.length ? `${flags.length} red flag(s): ${flags.map(f=>FLAG_TEXT[f]||f.toLowerCase().replace(/_/g," ")).join(", ")}.` : "No red flags found."}},
     behaviour:{title:"Customer Behaviour Agent", out:{deviation_level: n===0?"none":n<=1?"low":n<=3?"moderate":"high", observations:[`${n} behaviour signal(s) differ from the customer's usual pattern.`]}},
-    risk:{title:"Risk / Policy Agent", out:{risk_level:lvl, risk_score:rr.rule_score, rules_cited:rr.triggered_rules.map(h=>h.id).concat(rr.floors_applied.map(f=>f.id)).slice(0,5), rationale:`Rules engine score ${rr.rule_score} gives ${lvl} risk under policy thresholds${rr.floors_applied.length?"; floors applied: "+rr.floors_applied.map(f=>f.id).join(", "):""}.`}},
+    risk:{title:"Risk / Policy Agent", out:{risk_level:lvl, risk_score:rr.rule_score, rules_cited:rr.triggered_rules.map(h=>h.id).concat(rr.floors_applied.map(f=>f.id)).slice(0,5), rationale: rec ? `Recorded ${model} benchmark result for this case: ${lvl} risk. (Rules engine score ${rr.rule_score}, policy level ${rr.policy_level}.)` : `Rules engine score ${rr.rule_score} gives ${lvl} risk under policy thresholds${rr.floors_applied.length?"; floors applied: "+rr.floors_applied.map(f=>f.id).join(", "):""}.`}},
     recommendation:{title:"Recommendation Agent", out:{recommended_action:action, reasons:[`Final policy level is ${lvl}.`].concat(flags.slice(0,2).map(f=>"Red flag: "+(FLAG_TEXT[f]||f))), confidence:0.8}}
   };
 }
@@ -345,8 +356,10 @@ const ROUTE_LABEL = {auto_clear:["A","Auto-cleared (low risk)"], human_review:["
 $("#run").onclick = async () => {
   const id = $("#alertSel").value, t = alerts.find(a=>a.alert_id===id);
   const run_id = `${id}-${Math.random().toString(16).slice(2,10)}`;
-  const fault = $("#fault").value, mode = document.querySelector("input[name=inj]:checked").value;
-  const s = {run_id, alert_id:id, txn:t, decisions:[], outcome:null};
+  const model = $("#model").value; let fault = $("#fault").value; const mode = document.querySelector("input[name=inj]:checked").value;
+  const replay = model!=="stand-in" && REPLAY[model].lv[id] ? model : null;
+  const s = {run_id, alert_id:id, txn:t, decisions:[], outcome:null, model, replay};
+  if(replay && REPLAY[model].lv[id]==="fail") fault="all";
   current = s; runs.push(s);
   const view = $("#caseView");
   view.innerHTML = `<div class="status" id="prog"><b>⏳ Workflow running...</b></div>`;
@@ -361,13 +374,13 @@ $("#run").onclick = async () => {
   }
   [s.features, s.missing] = features(t,c); const [safe, found] = sanitise(t, mode); s.injection = found; s.safe=safe;
   s.rules = rulesEngine(s.features, s.missing, found.length>0); s.masked = maskCust(c); s.customer=c;
-  log(run_id,id,"Orchestrator","case_opened",{model:"rule-based stand-in (web demo)",missing_fields:s.missing,injection_findings:found.length,rule_score:s.rules.rule_score,policy_level:s.rules.policy_level,pii_masked:true});
+  log(run_id,id,"Orchestrator","case_opened",{model: replay ? model+" (recorded benchmark replay)" : "rule-based stand-in (web demo)" + (model!=="stand-in" ? "; no recorded "+model+" result for this alert" : ""),missing_fields:s.missing,injection_findings:found.length,rule_score:s.rules.rule_score,policy_level:s.rules.policy_level,pii_masked:true});
   await step("Orchestrator: case opened, data loaded, PII masked, rules engine run");
-  const ag = agents(s); s.agents = ag;
+  const ag = agents(s, replay); s.agents = ag;
   for(const k of ["transaction","behaviour","risk","recommendation"]){
     const a = ag[k]; a.attempts = 1; a.ok = true;
     if(k==="risk" && fault==="first"){ a.attempts=2; a.note="First reply was not valid JSON; the agent was asked again with the error and the retry succeeded."; }
-    if(k==="risk" && fault==="all"){ a.attempts=2; a.ok=false; a.note="Both replies were not valid JSON."; }
+    if(k==="risk" && fault==="all"){ a.attempts=2; a.ok=false; a.note = replay ? `In our recorded local benchmark, ${model} did not complete this case, so it went to exception review.` : "Both replies were not valid JSON."; }
     log(run_id,id,a.title, a.ok?"agent_completed":"agent_failed", {output:a.ok?a.out:null, attempts:a.attempts});
     await step(`${a.title}: ${a.ok?"OK":"FAILED"}${a.attempts>1?" (after retry)":""}`);
     if(!a.ok){ s.failed=k; s.route="exception_review"; s.stage="exception_review"; s.final_level=s.rules.policy_level; return finishRun(s); }
@@ -400,14 +413,16 @@ function finishRun(s){
 function renderCase(s){
   const v = $("#caseView"); const prog = $("#prog") ? $("#prog").outerHTML : "";
   const [lab, txt] = ROUTE_LABEL[s.route];
-  let h = prog + `<hr style="border:none;border-top:1px solid var(--line);margin:22px 0"><h2>Case ${esc(s.run_id)} · model: rule-based stand-in</h2>`;
+  let h = prog + `<hr style="border:none;border-top:1px solid var(--line);margin:22px 0"><h2>Case ${esc(s.run_id)} · model: ${esc(s.replay ? s.model+" (recorded replay)" : "rule-based stand-in")}</h2>`;
+  if(s.replay) h += `<div class="banner b-info">Recorded replay: the model risk level below is what ${esc(s.model)} gave for ${esc(s.alert_id)} in our local Ollama benchmark (average ${REPLAY[s.model].lat} s per case on our laptop). The agent wording is the web stand-in; the rules engine, policy gate and human steps are running live now.</div>`;
+  else if(s.model && s.model!=="stand-in") h += `<div class="banner b-info">No recorded ${esc(s.model)} result for this alert (only the 8 benchmark cases were recorded), so the rule-based stand-in was used.</div>`;
   if(s.error){ h += `<div class="banner b-err">Data exception: ${esc(s.error)}. The case was sent to a human.</div>`; }
   else {
     h += `<div class="cards4"><div class="metric"><div class="k">Rule score</div><div class="big">${s.rules.rule_score}</div></div>
       <div class="metric"><div class="k">Model risk level</div><div class="big">${s.failed?"–":String(s.llmLevel).toUpperCase()}</div></div>
       <div class="metric"><div class="k">Final risk level (policy)</div><div class="big">${s.failed?"–":String(s.final_level).toUpperCase()}</div></div>
       <div><b>Route</b><div class="route-${lab}" style="font-weight:600;font-size:1.1rem">[${lab}] ${txt}</div></div></div>`;
-    if(s.failed) h += `<div class="banner b-err">Model exception: ${esc(s.agents[s.failed].title)} could not give a valid answer (${s.agents[s.failed].attempts} attempts). The case was sent to a human.</div>`;
+    if(s.failed) h += s.replay ? `<div class="banner b-err">Model exception: ${esc(s.agents[s.failed].note)} The case was sent to a human.</div>` : `<div class="banner b-err">Model exception: ${esc(s.agents[s.failed].title)} could not give a valid answer (${s.agents[s.failed].attempts} attempts). The case was sent to a human.</div>`;
     (s.reasons||[]).forEach(r => h += `<div class="banner b-warn">Guardrail: ${esc(r)}</div>`);
     if(s.injection.length) h += `<div class="banner b-warn">Injection guardrail: instruction-like text found in ${s.injection.map(x=>x.field).join(", ")}. ${document.querySelector("input[name=inj]:checked").value==="redact"?"It was removed before any agent saw it.":"It was flagged as untrusted."} Data floor DQ2 applied: this case cannot be auto-cleared.</div>`;
     if(s.missing.length) h += `<div class="banner b-info">Missing evidence: ${s.missing.join(", ")}. Data floor DQ1 applied: this case cannot be auto-cleared.</div>`;
